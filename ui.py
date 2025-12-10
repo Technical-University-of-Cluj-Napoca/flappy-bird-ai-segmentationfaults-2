@@ -3,10 +3,25 @@ import sys
 from sprites import SpriteSheet, get_background_night, get_base
 
 class FlappyBirdUI:
-    def __init__(self, width=576, height=1024):
+    def __init__(self, width=None, height=None):
         pygame.init()
-        self.width = width
-        self.height = height
+        
+        # Get screen dimensions
+        info = pygame.display.Info()
+        screen_height = info.current_h
+        
+        # Set Window Size (Height 80% of screen, Width 9:16 aspect ratio)
+        if height is None:
+            self.height = int(screen_height * 0.8)
+        else:
+            self.height = height
+            
+        if width is None:
+            # Maintain 9:16 aspect ratio (phone screen)
+            self.width = int(self.height * (9 / 16))
+        else:
+            self.width = width
+            
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Flappy Bird AI")
         self.clock = pygame.time.Clock()
@@ -28,15 +43,12 @@ class FlappyBirdUI:
     def draw_background(self):
         self.screen.blit(self.background, (0, 0))
         
-        # Draw Base (2 copies for scrolling)
-        self.screen.blit(self.base, (self.base_scroll, self.ground_y))
-        self.screen.blit(self.base, (self.base_scroll + self.base.get_width(), self.ground_y))
-        # Add a 3rd one just in case 576 > 672? No, 576 < 672. But if scroll moves left...
-        # If scroll is -4, second copy is at 332. Ends at 668. Covers 576. 
-        # But when scroll is -336, it snaps to 0. 
-        # So we need enough copies to cover 'width + one sprite width'.
-        # 576 + 336 = 912. 3 sprites (336*3=1008) is safer.
-        self.screen.blit(self.base, (self.base_scroll + self.base.get_width() * 2, self.ground_y))
+        # Draw Base (dynamic number of copies for scrolling)
+        base_width = self.base.get_width()
+        num_tiles = (self.width // base_width) + 2
+        
+        for i in range(num_tiles):
+            self.screen.blit(self.base, (self.base_scroll + base_width * i, self.ground_y))
 
     def update(self):
         # Event handling
