@@ -14,7 +14,6 @@ font = pygame.font.SysFont('Segoe', 26)
 small_font = pygame.font.SysFont('Arial', 16)
 
 
-
 show_score_popup = False  
 
 SCORE_FILE = "highscore.txt"
@@ -34,6 +33,7 @@ STATE_MENU = 0
 STATE_GET_READY = 1
 STATE_PLAYING = 2
 STATE_GAME_OVER = 3
+STATE_PAUSED = 4
 
 def scale_image(image, scale_factor):
     width = int(image.get_width() * scale_factor)

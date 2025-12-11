@@ -23,10 +23,27 @@ rate_button = create_button("RATE", BUTTON_WIDTH, BUTTON_HEIGHT)
 score_button = create_button("SCORE", BUTTON_WIDTH, BUTTON_HEIGHT)
 
 
+_restart_raw = pygame.image.load("sprites/restart_button.jpeg")
+_menu_raw = pygame.image.load("sprites/menu_btn.jpg")
+
+
+GAME_OVER_BTN_WIDTH = int(80 * SCALE * 0.4)
+GAME_OVER_BTN_HEIGHT = int(28 * SCALE * 0.4)
+
+
+restart_button_img = pygame.transform.scale(_restart_raw, (GAME_OVER_BTN_WIDTH, GAME_OVER_BTN_HEIGHT))
+menu_button_img = pygame.transform.scale(_menu_raw, (GAME_OVER_BTN_WIDTH, GAME_OVER_BTN_HEIGHT))
+
+
+pause_btn_scale = SCALE * 0.15
+pause_button_img = scale_image(pygame.image.load("sprites/btn1.png"), pause_btn_scale)  
+resume_button_img = scale_image(pygame.image.load("sprites/btn2.png"), pause_btn_scale)  
+
+
 def create_title_image():
     title_font = pygame.font.SysFont('Arial', int(50 * SCALE * 0.5), bold=True)
     
-    flappy_text = title_font.render("Flappy", True, (83, 175, 30))  # Green
+    flappy_text = title_font.render("Flappy", True, (83, 175, 30)) 
     bird_text = title_font.render("Bird", True, (83, 175, 30))
     
     total_width = flappy_text.get_width() + bird_text.get_width() + 20

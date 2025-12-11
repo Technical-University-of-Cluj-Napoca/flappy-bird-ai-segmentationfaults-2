@@ -37,7 +37,7 @@ def get_events():
 def check_button_click(pos, button_rect):
     return button_rect.collidepoint(pos)
 
-#SCREENS
+
 def menu_screen():
     global game_state, show_score_popup
     
@@ -46,13 +46,14 @@ def menu_screen():
     button_y_row1 = y_pos_ground - 80  
     button_y_row2 = y_pos_ground - 140  
     
-    start_x = win_width // 2 - BUTTON_WIDTH - 20
+    start_x = win_width // 2 - BUTTON_WIDTH // 2
     score_x = win_width // 2 + 20
-    rate_x = win_width // 2 - BUTTON_WIDTH // 2
+    rate_x = win_width // 2 - BUTTON_WIDTH - 20
     
-    start_rect = pygame.Rect(start_x, button_y_row1, BUTTON_WIDTH, BUTTON_HEIGHT)
+    # start button is at row2, score and rate at row1
+    start_rect = pygame.Rect(start_x, button_y_row2, BUTTON_WIDTH, BUTTON_HEIGHT)
     score_rect = pygame.Rect(score_x, button_y_row1, BUTTON_WIDTH, BUTTON_HEIGHT)
-    rate_rect = pygame.Rect(rate_x, button_y_row2, BUTTON_WIDTH, BUTTON_HEIGHT)
+    rate_rect = pygame.Rect(rate_x, button_y_row1, BUTTON_WIDTH, BUTTON_HEIGHT)
     
     bird_anim_index = 0
     bird_y_offset = 0
@@ -97,9 +98,9 @@ def menu_screen():
         bird_title_y = title_y + title_image.get_height() // 2 - bird_img.get_height() // 2 + bird_y_offset
         window.blit(bird_img, (bird_title_x, bird_title_y))
         
-        window.blit(start_button, (start_x, button_y_row1))
+        window.blit(start_button, (start_x, button_y_row2))
         window.blit(score_button, (score_x, button_y_row1))
-        window.blit(rate_button, (rate_x, button_y_row2))
+        window.blit(rate_button, (rate_x, button_y_row1))
         
         copyright_text = create_copyright_text()
         window.blit(copyright_text, (win_width // 2 - copyright_text.get_width() // 2, 
@@ -177,6 +178,7 @@ def game_screen():
     global game_state, score, best_score
     
     score = 0
+    is_paused = False
     
     bird = pygame.sprite.GroupSingle()
     bird.add(Bird())
@@ -188,18 +190,35 @@ def game_screen():
     ground = pygame.sprite.Group()
     ground.add(Ground(0, y_pos_ground))
     
+    # Pause button position (top-left corner)
+    pause_btn_x = 15
+    pause_btn_y = 15
+    pause_btn_rect = pygame.Rect(pause_btn_x, pause_btn_y, 
+                                  pause_button_img.get_width(), 
+                                  pause_button_img.get_height())
+    
     while game_state == STATE_PLAYING:
         events = get_events()
         
         for event in events:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                if bird.sprite.alive and bird.sprite.rect.y > 0:
-                    bird.sprite.flap = True
-                    bird.sprite.vel = -7
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and not is_paused:
+                    if bird.sprite.alive and bird.sprite.rect.y > 0:
+                        bird.sprite.flap = True
+                        bird.sprite.vel = -7
+                elif event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
+                    is_paused = not is_paused
+            
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if bird.sprite.alive and bird.sprite.rect.y > 0:
-                    bird.sprite.flap = True
-                    bird.sprite.vel = -7
+                mouse_pos = pygame.mouse.get_pos()
+                
+                # Check if pause button clicked
+                if pause_btn_rect.collidepoint(mouse_pos):
+                    is_paused = not is_paused
+                elif not is_paused:
+                    if bird.sprite.alive and bird.sprite.rect.y > 0:
+                        bird.sprite.flap = True
+                        bird.sprite.vel = -7
         
         window.fill((0, 0, 0))
         user_input = pygame.key.get_pressed()
@@ -215,43 +234,60 @@ def game_screen():
         
         draw_score(window, score, win_width // 2, 50, centered=True)
         
-        if bird.sprite.alive:
-            pipes.update()
-            ground.update()
+        # Draw pause button
+        if is_paused:
+            window.blit(resume_button_img, (pause_btn_x, pause_btn_y))
             
-            for pipe in pipes:
-                if pipe.pipe_type == 'bottom' and not pipe.passed:
-                    if bird.sprite.rect.left > pipe.rect.right:
-                        pipe.passed = True
-                        score += 1
+            # Draw "PAUSED" text overlay
+            pause_font = pygame.font.SysFont('Arial', 40, bold=True)
+            pause_text = pause_font.render('PAUSED', True, (255, 255, 255))
+            pause_shadow = pause_font.render('PAUSED', True, (0, 0, 0))
+            text_x = win_width // 2 - pause_text.get_width() // 2
+            text_y = win_height // 2 - pause_text.get_height() // 2
+            window.blit(pause_shadow, (text_x + 2, text_y + 2))
+            window.blit(pause_text, (text_x, text_y))
+        else:
+            window.blit(pause_button_img, (pause_btn_x, pause_btn_y))
         
-        bird.update(user_input)
-        
-        collision_pipes = pygame.sprite.spritecollide(bird.sprites()[0], pipes, False)
-        collision_ground = pygame.sprite.spritecollide(bird.sprites()[0], ground, False)
-        if collision_pipes or collision_ground:
-            bird.sprite.alive = False
-            if score > best_score:
-                best_score = score
-                save_high_score(best_score)
-            game_state = STATE_GAME_OVER
-            return pipes, ground, bird, y_pos_ground
-        
-        if pipe_timer <= 0 and bird.sprite.alive:
-            x_pos = win_width + 10
-            pipe_gap = random.randint(140, 180)
+        # Only update game when not paused
+        if not is_paused:
+            if bird.sprite.alive:
+                pipes.update()
+                ground.update()
+                
+                for pipe in pipes:
+                    if pipe.pipe_type == 'bottom' and not pipe.passed:
+                        if bird.sprite.rect.left > pipe.rect.right:
+                            pipe.passed = True
+                            score += 1
             
-            min_gap_top = 80
-            max_gap_top = y_pos_ground - pipe_gap - 80
-            gap_top = random.randint(min_gap_top, max_gap_top)
+            bird.update(user_input)
             
-            y_top = gap_top - top_pipe_image.get_height()
-            y_bottom = gap_top + pipe_gap
+            collision_pipes = pygame.sprite.spritecollide(bird.sprites()[0], pipes, False)
+            collision_ground = pygame.sprite.spritecollide(bird.sprites()[0], ground, False)
+            if collision_pipes or collision_ground:
+                bird.sprite.alive = False
+                if score > best_score:
+                    best_score = score
+                    save_high_score(best_score)
+                game_state = STATE_GAME_OVER
+                return pipes, ground, bird, y_pos_ground
             
-            pipes.add(Pipe(x_pos, y_top, top_pipe_image, 'top'))
-            pipes.add(Pipe(x_pos, y_bottom, bottom_pipe_image, 'bottom'))
-            pipe_timer = random.randint(180, 250)
-        pipe_timer -= 1
+            if pipe_timer <= 0 and bird.sprite.alive:
+                x_pos = win_width + 10
+                pipe_gap = random.randint(140, 180)
+                
+                min_gap_top = 80
+                max_gap_top = y_pos_ground - pipe_gap - 80
+                gap_top = random.randint(min_gap_top, max_gap_top)
+                
+                y_top = gap_top - top_pipe_image.get_height()
+                y_bottom = gap_top + pipe_gap
+                
+                pipes.add(Pipe(x_pos, y_top, top_pipe_image, 'top'))
+                pipes.add(Pipe(x_pos, y_bottom, bottom_pipe_image, 'bottom'))
+                pipe_timer = random.randint(180, 250)
+            pipe_timer -= 1
         
         clock.tick(60)
         pygame.display.update()
@@ -266,6 +302,28 @@ def game_over_screen(pipes, ground, bird, y_pos_ground):
     
     panel_font = pygame.font.SysFont('Arial', 14, bold=True)
     
+    # Calculate button positions
+    game_over_y = win_height // 4
+    panel_width = int(226 * SCALE * 0.5)
+    panel_height = int(114 * SCALE * 0.5)
+    panel_y = game_over_y + game_over_image.get_height() + 25
+    
+    # Button positions below the panel
+    btn_y = panel_y + panel_height + 25
+    btn_spacing = 30
+    
+    # Restart button (left)
+    restart_btn_x = win_width // 2 - restart_button_img.get_width() - btn_spacing // 2
+    restart_btn_rect = pygame.Rect(restart_btn_x, btn_y, 
+                                    restart_button_img.get_width(), 
+                                    restart_button_img.get_height())
+    
+    # Menu button (right)
+    menu_btn_x = win_width // 2 + btn_spacing // 2
+    menu_btn_rect = pygame.Rect(menu_btn_x, btn_y,
+                                 menu_button_img.get_width(),
+                                 menu_button_img.get_height())
+    
     while game_state == STATE_GAME_OVER:
         events = get_events()
         
@@ -278,8 +336,14 @@ def game_over_screen(pipes, ground, bird, y_pos_ground):
                     game_state = STATE_MENU
                     return
             if event.type == pygame.MOUSEBUTTONDOWN:
-                game_state = STATE_GET_READY
-                return
+                mouse_pos = pygame.mouse.get_pos()
+                
+                if restart_btn_rect.collidepoint(mouse_pos):
+                    game_state = STATE_GET_READY
+                    return
+                elif menu_btn_rect.collidepoint(mouse_pos):
+                    game_state = STATE_MENU
+                    return
         
         window.fill((0, 0, 0))
         
@@ -289,16 +353,12 @@ def game_over_screen(pipes, ground, bird, y_pos_ground):
         ground.draw(window)
         bird.draw(window)
         
-        game_over_y = win_height // 4
         window.blit(game_over_image, (win_width // 2 - game_over_image.get_width() // 2, game_over_y))
         
-        panel_width = int(226 * SCALE * 0.5)
-        panel_height = int(114 * SCALE * 0.5)
         panel_x = win_width // 2 - panel_width // 2
-        panel_y = game_over_y + game_over_image.get_height() + 25
         
         panel_surface = pygame.Surface((panel_width, panel_height))
-        panel_surface.fill((223, 216, 149))  # Tan/beige color
+        panel_surface.fill((223, 216, 149))
         window.blit(panel_surface, (panel_x, panel_y))
         
         pygame.draw.rect(window, (211, 170, 98), (panel_x, panel_y, panel_width, panel_height), 4)
@@ -330,8 +390,9 @@ def game_over_screen(pipes, ground, bird, y_pos_ground):
         window.blit(best_label, (score_section_x - best_label.get_width() // 2, panel_y + 58))
         draw_score(window, best_score, int(score_section_x), panel_y + 76, centered=True, size='small')
         
-        restart_text = small_font.render('Click or Press R to Restart | M for Menu', True, pygame.Color(255, 255, 255))
-        window.blit(restart_text, (win_width // 2 - restart_text.get_width() // 2, panel_y + panel_height + 20))
+        # Draw restart and menu buttons
+        window.blit(restart_button_img, (restart_btn_x, btn_y))
+        window.blit(menu_button_img, (menu_btn_x, btn_y))
         
         pygame.display.update()
         clock.tick(60)
