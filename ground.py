@@ -9,7 +9,6 @@ class Ground(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = x, y
 
     def update(self):
-        # Move Ground
         self.rect.x -= scroll_speed
         if self.rect.x <= -win_width:
             self.kill()

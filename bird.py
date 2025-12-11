@@ -12,17 +12,15 @@ class Bird(pygame.sprite.Sprite):
         self.vel = 0
         self.flap = False
         self.alive = True
-        self.max_y = win_height - GROUND_HEIGHT  # Ground position
+        self.max_y = win_height - GROUND_HEIGHT 
 
     def update(self, user_input):
-        # Animate Bird
         if self.alive:
             self.image_index += 1
         if self.image_index >= 30:
             self.image_index = 0
         self.image = bird_images[self.image_index // 10]
 
-        # Gravity and Flap
         self.vel += 0.5
         if self.vel > 7:
             self.vel = 7
@@ -31,10 +29,8 @@ class Bird(pygame.sprite.Sprite):
         if self.vel == 0:
             self.flap = False
 
-        # Rotate Bird
         self.image = pygame.transform.rotate(self.image, self.vel * -7)
 
-        # User Input
         if user_input[pygame.K_SPACE] and not self.flap and self.rect.y > 0 and self.alive:
             self.flap = True
             self.vel = -7
