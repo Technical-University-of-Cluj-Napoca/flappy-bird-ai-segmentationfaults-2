@@ -93,7 +93,7 @@ skyline_image = pygame.transform.scale(pygame.image.load("sprites/background-nig
 
 def create_copyright_text():
     font = pygame.font.SysFont('Arial', int(14 * SCALE * 0.6))
-    return font.render("(c) .GEARS Studios 2013", True, (255, 255, 255))
+    return font.render("(c) .SEGMENTATION Faults 2025", True, (255, 255, 255))
 
 
 
