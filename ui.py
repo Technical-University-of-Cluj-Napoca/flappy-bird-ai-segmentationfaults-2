@@ -21,6 +21,7 @@ def create_button(text, width, height, color=(223, 113, 38), text_color=(255, 25
 start_button = create_button("START", BUTTON_WIDTH, BUTTON_HEIGHT)
 rate_button = create_button("RATE", BUTTON_WIDTH, BUTTON_HEIGHT)
 score_button = create_button("SCORE", BUTTON_WIDTH, BUTTON_HEIGHT)
+ai_button = create_button("AI", BUTTON_WIDTH, BUTTON_HEIGHT)
 
 
 _restart_raw = pygame.image.load("sprites/restart_button.jpeg")
@@ -38,6 +39,10 @@ menu_button_img = pygame.transform.scale(_menu_raw, (GAME_OVER_BTN_WIDTH, GAME_O
 pause_btn_scale = SCALE * 0.15
 pause_button_img = scale_image(pygame.image.load("sprites/btn1.png"), pause_btn_scale)  
 resume_button_img = scale_image(pygame.image.load("sprites/btn2.png"), pause_btn_scale)  
+
+
+ai_btn_scale = SCALE * 0.15
+ai_button_img = scale_image(pygame.image.load("sprites/ai_mode_button.jpg"), ai_btn_scale)
 
 
 def create_title_image():
@@ -94,6 +99,3 @@ skyline_image = pygame.transform.scale(pygame.image.load("sprites/background-nig
 def create_copyright_text():
     font = pygame.font.SysFont('Arial', int(14 * SCALE * 0.6))
     return font.render("(c) .SEGMENTATION Faults 2025", True, (255, 255, 255))
-
-
-

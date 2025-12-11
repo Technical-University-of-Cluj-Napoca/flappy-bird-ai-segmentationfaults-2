@@ -7,6 +7,8 @@ win_height = 720
 win_width = 551
 scroll_speed = 1
 
+window = pygame.display.set_mode((win_width, win_height))
+
 
 score = 0
 
