@@ -1,4 +1,5 @@
 import pygame
+import math
 from bird import Bird
 from ground import Ground
 from utils import *
@@ -11,8 +12,13 @@ from utils import *
 class MenuScreen:
     def __init__(self):
         self.bird_anim_index = 0
+        self.bird_anim_index = 0
         self.bird_y_offset = 0
         self.bird_y_direction = 1
+        self.current_user_rating = 0
+        self.cached_average_rating = 0.0
+
+
         
     def handle_events(self):
         events = pygame.event.get()
@@ -23,7 +29,12 @@ class MenuScreen:
                 exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
-                self._handle_clicks(mouse_pos)
+                if config.show_rate_popup:
+                    self._handle_rate_clicks(mouse_pos)
+                    
+                    self._handle_clicks(mouse_pos)
+                else:
+                    self._handle_clicks(mouse_pos)
         
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
@@ -34,9 +45,7 @@ class MenuScreen:
         button_y_row1 = y_pos_ground - 80
         button_y_row2 = y_pos_ground - 140
         
-        # Arrange buttons in two columns:
-        # left column: Start (upper) above Rate (lower)
-        # right column: AI (upper) above Score (lower)
+        
         center = win_width // 2
         spacing = 40
         left_x = center - BUTTON_WIDTH - spacing // 2
@@ -47,12 +56,20 @@ class MenuScreen:
         ai_rect = pygame.Rect(right_x, button_y_row2, BUTTON_WIDTH, BUTTON_HEIGHT)
         score_rect = pygame.Rect(right_x, button_y_row1, BUTTON_WIDTH, BUTTON_HEIGHT)
 
+        if rate_rect.collidepoint(mouse_pos):
+            config.show_rate_popup = not config.show_rate_popup
+            self.current_user_rating = 0
+            if config.show_rate_popup:
+                self.cached_average_rating = get_average_rating()
+            return
+
+        if config.show_rate_popup:
+            return
+
+
         if start_rect.collidepoint(mouse_pos):
             config.start_with_ai = False
             config.game_state = STATE_GET_READY
-            return
-        if rate_rect.collidepoint(mouse_pos):
-            # Rate button currently has no special action; keep placeholder
             return
         if score_rect.collidepoint(mouse_pos):
             config.show_score_popup = not config.show_score_popup
@@ -61,18 +78,50 @@ class MenuScreen:
             config.start_with_ai = True
             config.game_state = STATE_PLAYING
             return
+
+    def _handle_rate_clicks(self, mouse_pos):
+        popup_width = 300
+        popup_height = 260
+        popup_x = win_width // 2 - popup_width // 2
+        popup_y = win_height // 2 - popup_height // 2
+        
+        close_btn_rect = pygame.Rect(popup_x + popup_width - 30, popup_y + 10, 20, 20)
+        if close_btn_rect.collidepoint(mouse_pos):
+             config.show_rate_popup = False
+             return
+
+        rate_btn_rect = pygame.Rect(popup_x + popup_width//2 - 40, popup_y + 200, 80, 35)
+        if rate_btn_rect.collidepoint(mouse_pos):
+             if self.current_user_rating > 0:
+                 save_rating(self.current_user_rating)
+                 self.cached_average_rating = get_average_rating()
+             return
+
+        star_y = popup_y + 100
+        star_radius = 20
+        star_spacing = 50
+        start_x = popup_x + (popup_width - (5 * star_spacing)) // 2 + star_radius
+
+        for i in range(1, 6):
+            cx = start_x + (i-1) * star_spacing
+            cy = star_y
+            dist = math.sqrt((mouse_pos[0] - cx)**2 + (mouse_pos[1] - cy)**2)
+            if dist <= star_radius * 1.5:
+                self.current_user_rating = i
+                break
+
+
+
             
     def render(self):
         y_pos_ground = win_height - ground_image.get_height()
         
         button_y_row1 = y_pos_ground - 80
         button_y_row2 = y_pos_ground - 140
-        # Match the column layout used in _handle_clicks(): left column and right column
         center = win_width // 2
         spacing = 40
         left_x = center - BUTTON_WIDTH - spacing // 2
         right_x = center + spacing // 2
-        # positions: upper row = button_y_row2, lower row = button_y_row1
         start_x = left_x
         rate_x = left_x
         ai_x = right_x
@@ -107,6 +156,10 @@ class MenuScreen:
         
         if config.show_score_popup:
             self._render_score_popup(y_pos_ground)
+            
+        if config.show_rate_popup:
+            self._render_rate_popup()
+
         
         pygame.display.update()
         config.clock.tick(60)
@@ -128,6 +181,73 @@ class MenuScreen:
         config.window.blit(best_label, (popup_x + popup_width // 2 - best_label.get_width() // 2, popup_y + 12))
         
         draw_score(config.window, config.best_score, popup_x + popup_width // 2, popup_y + 35, centered=True, size='tiny')
+
+    def _draw_star(self, surface, x, y, radius, filled, color=(255, 215, 0), outline_color=(255, 255, 255)):
+        points = []
+        for i in range(10):
+            angle = math.radians(i * 36 - 90)
+            r = radius if i % 2 == 0 else radius * 0.4
+            px = x + r * math.cos(angle)
+            py = y + r * math.sin(angle)
+            points.append((px, py))
+        
+        if filled:
+            pygame.draw.polygon(surface, color, points)
+        else:
+            pygame.draw.polygon(surface, (100, 100, 100), points, 2)
+            
+        pygame.draw.polygon(surface, outline_color, points, 1)
+
+    def _render_rate_popup(self):
+        popup_width = 300
+        popup_height = 260
+        popup_x = win_width // 2 - popup_width // 2
+        popup_y = win_height // 2 - popup_height // 2
+        
+        popup_surface = pygame.Surface((popup_width, popup_height))
+        popup_surface.fill((223, 216, 149))
+        config.window.blit(popup_surface, (popup_x, popup_y))
+        pygame.draw.rect(config.window, (211, 170, 98), (popup_x, popup_y, popup_width, popup_height), 3)
+        pygame.draw.rect(config.window, (132, 103, 53), (popup_x + 3, popup_y + 3, popup_width - 6, popup_height - 6), 2)
+        
+        close_rect = pygame.Rect(popup_x + popup_width - 32, popup_y + 8, 24, 24)
+        pygame.draw.rect(config.window, (200, 50, 50), close_rect)
+        pygame.draw.rect(config.window, (100, 0, 0), close_rect, 2)
+        close_font = pygame.font.SysFont('Arial', 18, bold=True)
+        close_text = close_font.render("X", True, (255, 255, 255))
+        config.window.blit(close_text, (close_rect.centerx - close_text.get_width()//2, close_rect.centery - close_text.get_height()//2))
+
+        popup_font = pygame.font.SysFont('Arial', 24, bold=True)
+        title_label = popup_font.render('RATE US', True, pygame.Color(223, 113, 38))
+        config.window.blit(title_label, (popup_x + popup_width // 2 - title_label.get_width() // 2, popup_y + 30))
+        
+        star_y = popup_y + 110
+        star_radius = 20
+        star_spacing = 50
+        start_x = popup_x + (popup_width - (5 * star_spacing)) // 2 + star_radius
+
+        for i in range(1, 6):
+            cx = start_x + (i-1) * star_spacing
+            cy = star_y
+            filled = i <= self.current_user_rating
+            self._draw_star(config.window, cx, cy, star_radius, filled)
+            
+        avg_font = pygame.font.SysFont('Arial', 16, bold=True)
+        avg_text = f"Average: {self.cached_average_rating:.1f} / 5.0"
+        avg_label = avg_font.render(avg_text, True, (80, 50, 20))
+        config.window.blit(avg_label, (popup_x + popup_width // 2 - avg_label.get_width() // 2, popup_y + 160))
+
+        rate_btn_rect = pygame.Rect(popup_x + popup_width//2 - 40, popup_y + 200, 80, 35)
+        btn_color = (223, 113, 38)
+        pygame.draw.rect(config.window, btn_color, rate_btn_rect)
+        pygame.draw.rect(config.window, (180, 80, 20), rate_btn_rect, 2)
+        
+        btn_font = pygame.font.SysFont('Arial', 18, bold=True)
+        btn_text = btn_font.render("RATE", True, (255, 255, 255))
+        config.window.blit(btn_text, (rate_btn_rect.centerx - btn_text.get_width()//2, rate_btn_rect.centery - btn_text.get_height()//2))
+
+
+
 
 
 class GetReadyScreen:

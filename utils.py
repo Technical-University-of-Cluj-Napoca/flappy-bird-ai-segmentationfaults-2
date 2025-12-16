@@ -1,6 +1,25 @@
 import pygame
 import os
 
+import pygame
+import os
+
+def save_rating(rating):
+    with open(RATINGS_FILE, "a") as f:
+        f.write(f"{rating}\n")
+
+def get_average_rating():
+    if not os.path.exists(RATINGS_FILE):
+        return 0.0
+    try:
+        with open(RATINGS_FILE, "r") as f:
+            ratings = [int(line.strip()) for line in f if line.strip().isdigit()]
+        if not ratings:
+            return 0.0
+        return sum(ratings) / len(ratings)
+    except Exception:
+        return 0.0
+
 pygame.init()
 
 win_height = 720
@@ -19,6 +38,7 @@ small_font = pygame.font.SysFont('Arial', 16)
 show_score_popup = False  
 
 SCORE_FILE = "highscore.txt"
+RATINGS_FILE = "ratings.txt"
 
 ORIGINAL_WIDTH = 288
 ORIGINAL_HEIGHT = 512

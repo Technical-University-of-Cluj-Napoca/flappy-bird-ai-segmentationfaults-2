@@ -79,9 +79,7 @@ class GameController:
     def update(self):
         if config.is_paused:
             return
-        # AI mode update
         if self.ai_mode and self.population is not None:
-            # update pipes and ground
             self.pipes.update()
             self.ground.update()
 
@@ -90,10 +88,8 @@ class GameController:
                 self.pipe_timer = random.randint(180, 250)
             self.pipe_timer -= 1
 
-            # update population (draw/update handled there)
             self.population.update_live_players(self.pipes)
 
-            # Update historical best every frame (not just during selection)
             try:
                 current_best = max(getattr(b, 'score', 0) for b in self.population.birds)
                 if current_best > self.population.historical_best:
@@ -103,12 +99,10 @@ class GameController:
                 pass
 
             if self.population.extinct():
-                # prepare next generation
                 self.pipes.empty()
                 self.population.natural_selection()
             return
 
-        # Single-player update
         if self.bird.sprite.alive:
             self.pipes.update()
             self.ground.update()
@@ -166,19 +160,16 @@ class GameController:
             for b in self.population.birds:
                 if getattr(b, 'alive', False):
                     b.draw(config.window)
-            # HUD indicator for AI mode: generation / alive / best fitness
             try:
                 alive = sum(1 for b in self.population.birds if getattr(b, 'alive', False))
                 total = len(self.population.birds)
                 gen = getattr(self.population, 'generation', 0)
-                # best score among birds
                 best_score = 0
                 for b in self.population.birds:
                     if getattr(b, 'score', 0) > best_score:
                         best_score = b.score
 
                 font = pygame.font.SysFont('Arial', 18, bold=True)
-                # draw at bottom-left: two lines (Gen, Alive)
                 lines = [f'Gen: {gen}', f'Alive: {alive}/{total}']
                 start_y = win_height - 40
                 for i, line in enumerate(lines):
@@ -189,9 +180,7 @@ class GameController:
         else:
             self.bird.draw(config.window)
         
-        # In AI mode show historical best score (all-time across generations) at top-center
         if self.ai_mode and self.population is not None:
-            # Use historical_best so the displayed score persists and increases as evolution improves
             best_score = getattr(self.population, 'historical_best', 0)
             draw_score(config.window, best_score, win_width // 2, 50, centered=True)
         else:

@@ -13,6 +13,7 @@ class GameConfig:
         self.score = 0
         self.best_score = load_high_score()
         self.show_score_popup = False
+        self.show_rate_popup = False
         self.is_paused = False
         # AI settings
         self.ai_population_size = 50
